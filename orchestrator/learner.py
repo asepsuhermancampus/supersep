@@ -94,7 +94,7 @@ Extract reusable rules in strict YAML format now.
         if not learnings:
             return "No new distinct learning rules identified for this session."
 
-        lines = ["\n### 💡 Proposed Knowledge Learnings for Review:\n"]
+        lines = ["\n### [KNOWLEDGE] Proposed Knowledge Learnings for Review:\n"]
         for idx, item in enumerate(learnings, 1):
             scope_str = f"Project [{item['target']}]" if item["scope"] == "project" else f"Global [{item['target']}]"
             lines.append(f"[{idx}] {scope_str}:")

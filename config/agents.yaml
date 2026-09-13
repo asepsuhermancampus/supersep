@@ -1,0 +1,26 @@
+agents:
+
+  - id: agent_1
+    name: requirement_analyst
+    model: gemini-3.8-flash
+    role: requirement
+
+  - id: agent_2
+    name: visual_ui_specialist
+    model: gemini-3.8-flash
+    role: visual
+
+  - id: agent_3
+    name: software_architect
+    model: gemini-3.8-flash
+    role: architecture
+
+  - id: agent_4
+    name: senior_developer
+    model: gemini-3.8-flash
+    role: implementation
+
+  - id: agent_5
+    name: adversarial_reviewer
+    model: gemini-3.8-flash
+    role: reviewer
