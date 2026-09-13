@@ -1,0 +1,9 @@
+{
+  "name": "ai-team",
+  "version": "1.0.0",
+  "description": "Token-optimized 5-agent engineering council and assembly line for architectural design and code execution",
+  "author": "Antigravity Team",
+  "skills": [
+    "skills/ai-team"
+  ]
+}
