@@ -15,7 +15,7 @@ Gunakan `/gassep <task atau blueprint>` untuk mengeksekusi hasil perencanaan men
 
 1. **Jalankan Assembly Line**:
    ```bash
-   python "C:\Users\asep.suherman\SETTUP TESTING\Build Project In Here\IDE\ai-team-gemini-3.8_flash\orchestrator\main.py" --task "<TASK>" --mode "full"
+   python "C:\Users\asep.suherman\SETTUP TESTING\Build Project In Here\IDE\ai-supersep\orchestrator\main.py" --task "<TASK>" --mode "full"
    ```
 2. **Penyajian Deliverable**:
    - Menampilkan kode produksi hasil rakitan Agent 4.

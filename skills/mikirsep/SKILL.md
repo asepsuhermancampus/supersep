@@ -17,7 +17,7 @@ Gunakan `/mikirsep <ide/rancangan>` untuk mengumpulkan dewan 5 agen AI dalam mer
 1. **Deteksi Workspace**: Otomatis mendeteksi nama direktori induk proyek saat ini untuk memuat memori proyek dari `memory/projects/<nama-proyek>/`.
 2. **Eksekusi 3-Round Lean Council**:
    ```bash
-   python "C:\Users\asep.suherman\SETTUP TESTING\Build Project In Here\IDE\ai-team-gemini-3.8_flash\orchestrator\main.py" --task "<TASK>" --mode "council"
+   python "C:\Users\asep.suherman\SETTUP TESTING\Build Project In Here\IDE\ai-supersep\orchestrator\main.py" --task "<TASK>" --mode "council"
    ```
    - **Round 1 (Micro-Briefs):** Kelima agen mengeluarkan keputusan inti, batasan, dan risiko (~150-200 token per agen).
    - **Round 2 (Matrix Debate):** Kelima agen saling menguji, mendukung, dan membantah usulan agen lain.
