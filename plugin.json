@@ -1,9 +1,10 @@
 {
-  "name": "ai-team",
+  "name": "supersep",
   "version": "1.0.0",
-  "description": "Token-optimized 5-agent engineering council and assembly line for architectural design and code execution",
-  "author": "Antigravity Team",
+  "description": "SuperSep: Dual-Phase Multi-Agent Engine with /mikirsep (Planning Council) and /gassep (Code Assembly)",
+  "author": "Asep Suherman",
   "skills": [
-    "skills/ai-team"
+    "skills/mikirsep",
+    "skills/gassep"
   ]
 }
