@@ -1,10 +1,11 @@
 {
   "name": "supersep",
   "version": "1.0.0",
-  "description": "SuperSep: Dual-Phase Multi-Agent Engine with /mikirsep (Planning Council) and /gassep (Code Assembly)",
+  "description": "SuperSep: Dual-Phase Multi-Agent Engine with /mikirsep (Planning Council), /gassep (Code Assembly), and /commitsep (Git Automation)",
   "author": "Asep Suherman",
   "skills": [
     "skills/mikirsep",
-    "skills/gassep"
+    "skills/gassep",
+    "skills/commitsep"
   ]
 }

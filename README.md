@@ -6,22 +6,28 @@ Turn vague ideas into robust, battle-tested software through an elite council of
 
 ---
 
-## 🚀 Two Commands
+## 🚀 Three Commands (Persis Seperti Superpowers)
 
-SuperSep simplifies your workflow into two clean slash commands:
+Begitu SuperSep terpasang, Anda mendapatkan **3 perintah slash** yang dapat digunakan langsung di percakapan chat IDE pada workspace mana pun:
 
 ### 1. `/mikirsep <ide / kebutuhan>` (Phase 1: Deliberation Council)
-Gathers the 5-agent council to brainstorm, debate trade-offs, identify edge cases, and produce an authoritative **Master Architecture Blueprint**.
-* **Round 1 (Micro-Briefs):** Strict token budgets (~150-200 tokens per agent).
-* **Round 2 (Matrix Debate):** Cross-critique and consensus voting.
-* **Round 3 (Blueprint Synthesis):** Single unified specification.
+Mengumpulkan dewan 5 agen AI untuk brainstorming, mendiskusikan pro-kontra, menguji kontradiksi, dan menyusun **Master Architecture Blueprint**.
+* **Round 1 (Micro-Briefs):** Anggaran token ketat (~150-200 token per agen).
+* **Round 2 (Matrix Debate):** Saling sanggah dan *consensus voting*.
+* **Round 3 (Blueprint Synthesis):** Dokumen spesifikasi arsitektur final yang solid.
 
 ### 2. `/gassep <task / blueprint>` (Phase 2: Assembly Line Coding)
-Executes the approved blueprint into production-grade code without messy file collisions or fragmented styles:
-* `agent_2` (UI Specialist): Layout, CSS tokens, and component specifications.
-* `agent_3` (Software Architect): Data models, interfaces, and API contracts.
-* `agent_4` (Senior Developer): **Lead Implementer** who merges specs into clean code.
-* `agent_5` (Adversarial Reviewer): **QA Gatekeeper** auditing security, bugs, and edge cases.
+Mengeksekusi cetak biru perencanaan menjadi kode produksi nyata tanpa tumpang tindih file:
+* `agent_2` (UI Specialist): Spesifikasi komponen UI, CSS layout, dan design tokens.
+* `agent_3` (Software Architect): Interface TypeScript, model data, dan kontrak API.
+* `agent_4` (Senior Developer): **Juru Koding Utama** yang merakit kode produksi bersih.
+* `agent_5` (Adversarial Reviewer): **Gatekeeper / QA** yang mengaudit kode dari celah keamanan dan bug sebelum diterapkan.
+
+### 3. `/commitsep [pesan opsional]` (Git Commit & Push Automation)
+Mengotomatiskan alur kerja Git dengan standar profesional:
+* Memeriksa `git status` dan memverifikasi keamanan file sensitif (`.env` tidak akan ter-commit).
+* Menganalisis perubahan kode dan menyusun pesan **Conventional Commits** (`feat:`, `fix:`, dll.) secara otomatis.
+* Mengeksekusi staging (`git add`), commit, dan langsung `git push` ke branch remote.
 
 ---
 
@@ -39,39 +45,57 @@ Executes the approved blueprint into production-grade code without messy file co
 
 ## 🧠 Key Features
 
-- **Active-5 Lean Protocol:** All 5 agents remain 100% active in every decision while reducing token consumption by ~85% using schema-enforced Micro-Briefs.
-- **Project-Scoped Memory:** Automatically detects the parent directory name of your active workspace (e.g. `HariKita - Web App`), storing project decisions in `memory/projects/<name>/` without cross-project pollution.
-- **Adaptive Self-Learning:** Extracts reusable patterns and proposes them to you for explicit approval before appending to memory or agent rules.
-- **Antigravity Global Plugin:** Ready to use across any workspace or project directly from the chat interface.
+- **Active-5 Lean Protocol:** Seluruh 5 agen tetap 100% aktif dalam setiap perancangan, tetapi penggunaan token dipangkas hingga **~85%** menggunakan schema *Micro-Briefs*.
+- **Project-Scoped Memory:** Otomatis mendeteksi nama direktori induk workspace aktif Anda (misal `HariKita - Web App`), menyimpan riwayat arsitektur di `memory/projects/<nama>/` tanpa tercampur ke proyek lain.
+- **Adaptive Self-Learning:** Menemukan pola/aturan baru dan memintakan konfirmasi persetujuan user (`[A] Approve, [D] Discard`) sebelum disimpan ke memori atau aturan agen.
+- **Antigravity Global Plugin:** Sekali dipasang, langsung aktif di semua project dan workspace pada IDE Anda.
 
 ---
 
-## 🛠️ Installation & Setup
+## 🛠️ Cara Kerja & Panduan Instalasi (Untuk User Lain)
 
-1. **Clone the repository:**
-   ```bash
-   git clone git@github.com:asepsuhermancampus/supersep.git
-   cd supersep
-   ```
-2. **Install dependencies:**
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-   pip install -r requirements.txt
-   ```
-3. **Configure Environment:**
-   Copy `.env.example` to `.env` and set your 9Router or API gateway details:
-   ```env
-   ROUTER_BASE_URL=http://localhost:20128/v1
-   ROUTER_API_KEY=your_key_here
-   MODEL=5_gemini_3.8_flash_by_antigravity
-   ```
+Antigravity IDE secara otomatis memindai dan memuat plugin dari direktori:
+* **Windows:** `C:\Users\<username>\.gemini\config\plugins\`
+* **Linux / macOS:** `~/.gemini/config/plugins/`
+
+### Opsi A: 1-Click Installer (Paling Mudah)
+
+**Di Windows (PowerShell):**
+```powershell
+git clone https://github.com/asepsuhermancampus/supersep.git
+cd supersep
+.\install.ps1
+```
+
+**Di Linux / macOS (Terminal):**
+```bash
+git clone https://github.com/asepsuhermancampus/supersep.git
+cd supersep
+chmod +x install.sh && ./install.sh
+```
+
+### Opsi B: Clone Manual ke Folder Plugin Global
+
+Cukup clone repository ini langsung ke folder plugin Antigravity Anda:
+```bash
+# Windows
+git clone https://github.com/asepsuhermancampus/supersep.git "$env:USERPROFILE\.gemini\config\plugins\supersep"
+
+# Linux / macOS
+git clone https://github.com/asepsuhermancampus/supersep.git ~/.gemini/config/plugins/supersep
+```
+Setelah itu salin `.env.example` menjadi `.env` di dalam folder plugin tersebut dan masukkan API Key atau Router Base URL Anda.
+
+Selesai! Buka Antigravity IDE di workspace mana pun, ketik `/` di chat, dan Anda akan langsung melihat:
+* `/mikirsep`
+* `/gassep`
+* `/commitsep`
 
 ---
 
 ## 🧪 Testing
 
-Run the automated test suite:
+Jalankan pengujian otomatis untuk memverifikasi modul:
 ```bash
 pytest tests/ -v
 ```
