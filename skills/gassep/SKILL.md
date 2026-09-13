@@ -14,8 +14,9 @@ Gunakan `/gassep <task atau blueprint>` untuk mengeksekusi hasil perencanaan men
 ## Alur Kerja
 
 1. **Jalankan Assembly Line**:
-   ```bash
-   python "C:\Users\asep.suherman\SETTUP TESTING\Build Project In Here\IDE\ai-supersep\orchestrator\main.py" --task "<TASK>" --mode "full"
+   Jalankan orchestrator menggunakan virtual environment terisolasi milik `ai-supersep`:
+   ```powershell
+   & "C:\Users\asep.suherman\SETTUP TESTING\Build Project In Here\IDE\ai-supersep\.venv\Scripts\python.exe" "C:\Users\asep.suherman\SETTUP TESTING\Build Project In Here\IDE\ai-supersep\orchestrator\main.py" --task "<TASK>" --project "<PATH_WORKSPACE_AKTIF>" --mode "full"
    ```
 2. **Penyajian Deliverable**:
    - Menampilkan kode produksi hasil rakitan Agent 4.
