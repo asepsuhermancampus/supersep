@@ -1,159 +1,260 @@
-import asyncio
-import random
-import re
-import yaml
-from pathlib import Path
-from typing import List, Dict, Any
+"""
+orchestrator/agent_runner.py — Round 1: Full Parallel Solutions (SuperSep v3.0)
 
-try:
-    from orchestrator.router import GeminiRouter
-except ImportError:
-    from router import GeminiRouter
+Each of 10 omniscient agents produces a COMPLETE solution simultaneously.
+Results are collected as AgentSolution dataclasses.
+Failed agents return status='failed' — never raise exceptions to caller.
+"""
+import asyncio
+import json
+import os
+import re
+from pathlib import Path
+
+from orchestrator.models import AgentSolution
+from orchestrator.router import GeminiRouter
+
+# Maps agent_id to (persona_name, agent_file_path)
+AGENT_REGISTRY: list[tuple[str, str]] = [
+    ("agent_1",  "agents/agent1.md"),
+    ("agent_2",  "agents/agent2.md"),
+    ("agent_3",  "agents/agent3.md"),
+    ("agent_4",  "agents/agent4.md"),
+    ("agent_5",  "agents/agent5.md"),
+    ("agent_6",  "agents/agent6.md"),
+    ("agent_7",  "agents/agent7.md"),
+    ("agent_8",  "agents/agent8.md"),
+    ("agent_9",  "agents/agent9.md"),
+    ("agent_10", "agents/agent10.md"),
+]
+
+# Persona name lookup (from agent file header line 1: "# Agent N — Persona Name")
+AGENT_PERSONA_NAMES: dict[str, str] = {
+    "agent_1":  "The Conservative Guardian",
+    "agent_2":  "The Innovator",
+    "agent_3":  "The Adversarial Skeptic",
+    "agent_4":  "The Pragmatist",
+    "agent_5":  "The Perfectionist",
+    "agent_6":  "The Scalability Architect",
+    "agent_7":  "The DX Champion",
+    "agent_8":  "The User Advocate",
+    "agent_9":  "The Data Whisperer",
+    "agent_10": "The Synthesis Master",
+}
+
+ROUND1_OUTPUT_FORMAT = """
+Respond ONLY in JSON (no markdown fences, no extra text):
+{
+  "solution": "Your complete solution from your persona perspective...",
+  "rationale": "Why you chose this specific approach...",
+  "risks": ["Risk 1 with concrete scenario...", "Risk 2..."],
+  "improvements": ["What could be even better with more time..."],
+  "artifacts": "Key code snippets, designs, or implementation details..."
+}"""
+
+ROUND1_TASK_PREFIX = """\
+## ROUND 1: FULL SOLUTION — OMNISCIENT COUNCIL PROTOCOL
+You are participating in Round 1 of the SuperSep 10-agent Omniscient Council.
+TASK TYPE: {task_type}
+
+Your mission: Provide a COMPLETE, production-grade solution for the given task
+from your unique cognitive persona. NOT a brief — your FULL expert answer.
+
+TASK:
+{task}
+
+PROJECT CONTEXT:
+{project_context}
+{output_format}"""
 
 
 class AgentRunner:
-    def __init__(self, router: GeminiRouter | None = None):
-        self.router = router or GeminiRouter()
+    """
+    Manages Round 1 of the Omni Protocol: 10 agents produce full solutions in parallel.
+    """
 
-        self.agents_dir = (
-            Path(__file__).resolve().parent.parent / "agents"
-        )
+    def __init__(self, router: GeminiRouter):
+        """Initialize with a shared GeminiRouter instance."""
+        self.router = router
+        self.agents = AGENT_REGISTRY
+        self._timeout = float(os.getenv("AGENT_TIMEOUT_SECONDS", "300"))
 
-        self.agents = [
-            ("agent_1", self.agents_dir / "agent1.md"),
-            ("agent_2", self.agents_dir / "agent2.md"),
-            ("agent_3", self.agents_dir / "agent3.md"),
-            ("agent_4", self.agents_dir / "agent4.md"),
-            ("agent_5", self.agents_dir / "agent5.md"),
-            ("agent_6", self.agents_dir / "agent6.md"),
-            ("agent_7", self.agents_dir / "agent7.md"),
-            ("agent_8", self.agents_dir / "agent8.md"),
-            ("agent_9", self.agents_dir / "agent9.md"),
-            ("agent_10", self.agents_dir / "agent10.md"),
-        ]
+    def load_agent_prompt(self, agent_file: str) -> str:
+        """
+        Load the agent persona prompt from its markdown file.
 
-    def load_agent_prompt(self, path: Path) -> str:
-        if not path.exists():
-            raise FileNotFoundError(
-                f"Agent prompt tidak ditemukan: {path}"
-            )
+        Args:
+            agent_file: Relative path to agent .md file
 
-        return path.read_text(encoding="utf-8")
+        Returns:
+            File contents as string, or fallback prompt if file not found
+        """
+        path = Path(agent_file)
+        if path.exists():
+            return path.read_text(encoding="utf-8")
+        return f"You are a world-class full-stack engineer. Think carefully and provide complete, production-grade solutions."
 
-    async def run_agent_micro_brief(
+    async def run_single_solution(
         self,
         agent_id: str,
-        agent_file: Path,
+        agent_file: str,
         task: str,
+        task_type: str,
         project_context: str = "",
-        stage_context: str = "",
-    ) -> Dict[str, Any]:
-        role_prompt = self.load_agent_prompt(agent_file)
+    ) -> AgentSolution:
+        """
+        Run a single agent for Round 1.
 
-        # Stage-specific context injection
-        stage_block = ""
-        if stage_context:
-            stage_block = f"\nSTAGE CONTEXT:\n{stage_context}\n"
+        Returns AgentSolution with status='failed' on any exception.
+        NEVER raises — caller receives all 10 results regardless.
 
-        system_prompt = f"""{role_prompt}
+        Args:
+            agent_id: e.g. 'agent_1'
+            agent_file: Path to agent's .md persona file
+            task: The user task string
+            task_type: Detected task type e.g. 'brainstorm', 'coding'
+            project_context: Optional project context string
 
-## Round 1: MICRO-BRIEF DIRECTIVE
-
-You are contributing your expert analysis in Round 1 of a 3-round elite engineering council.
-
-Your mission: Analyze the task strictly from your assigned cognitive lens and deliver your most important directives, constraints, and risk flags.
-
-Be thorough and precise. Do NOT truncate your reasoning. If a point needs explanation, explain it fully.
-Be concise where brevity is appropriate, but never sacrifice depth for word count.
-
-Respond in the following YAML format:
-{stage_block}
-directives:
-  - "Concrete directive 1 — with specific technical reasoning"
-  - "Concrete directive 2"
-  - "Concrete directive 3 (add more if needed)"
-constraints:
-  - "Hard constraint 1 — why this constraint matters"
-  - "Hard constraint 2"
-red_flags:
-  - "Critical risk 1 — specific scenario and consequence"
-  - "Critical risk 2"
-"""
-
-        context_block = ""
-        if project_context:
-            context_block = f"\nPROJECT CONTEXT & CONVENTIONS:\n{project_context}\n"
-
-        user_prompt = f"""TASK:
-{task}
-{context_block}
-Apply your Chain-of-Thought protocol, then provide your expert micro-brief in YAML format.
-"""
-
+        Returns:
+            AgentSolution dataclass
+        """
+        persona = AGENT_PERSONA_NAMES.get(agent_id, agent_id)
+        system_prompt = self.load_agent_prompt(agent_file)
+        user_prompt = ROUND1_TASK_PREFIX.format(
+            task_type=task_type,
+            task=task,
+            project_context=project_context or "(no prior context)",
+            output_format=ROUND1_OUTPUT_FORMAT,
+        )
         try:
-            raw_response = await self.router.request(
-                system_prompt=system_prompt,
-                user_prompt=user_prompt,
+            raw = await asyncio.wait_for(
+                self.router.request(system_prompt=system_prompt, user_prompt=user_prompt),
+                timeout=self._timeout,
+            )
+            parsed = self._parse_response(raw)
+            print(f"[Runner] {agent_id} ({persona}): OK")
+            return AgentSolution(
+                agent_id=agent_id,
+                persona=persona,
+                status="success",
+                solution=parsed.get("solution", raw),
+                rationale=parsed.get("rationale", ""),
+                risks=parsed.get("risks", []),
+                improvements=parsed.get("improvements", []),
+                artifacts=parsed.get("artifacts", ""),
+                raw=raw,
+            )
+        except Exception as e:
+            print(f"[Runner] {agent_id} ({persona}): FAILED — {type(e).__name__}: {e}")
+            return AgentSolution(
+                agent_id=agent_id,
+                persona=persona,
+                status="failed",
+                solution="",
+                rationale="",
+                risks=[],
+                improvements=[],
+                artifacts="",
+                raw="",
+                error=f"{type(e).__name__}: {e}",
             )
 
-            # Strip markdown code blocks if any
-            clean_yaml = re.sub(r"^```(?:yaml)?\n|```$", "", raw_response.strip(), flags=re.MULTILINE)
-            parsed = {}
-            try:
-                parsed = yaml.safe_load(clean_yaml) or {}
-            except Exception:
-                # If YAML parsing fails, treat the raw response as a directive
-                parsed = {
-                    "directives": [raw_response.strip()],
-                    "constraints": [],
-                    "red_flags": [],
-                }
+    async def run_all_solutions(
+        self,
+        task: str,
+        task_type: str = "mixed",
+        project_context: str = "",
+    ) -> list[AgentSolution]:
+        """
+        Round 1: Run all 10 agents simultaneously via asyncio.gather.
 
+        Args:
+            task: The user task string
+            task_type: Task category for tailored prompts
+            project_context: Optional project context
+
+        Returns:
+            List of 10 AgentSolution objects (some may have status='failed')
+        """
+        print(f"[Runner] ROUND 1: Launching {len(self.agents)} agents in parallel...")
+        coroutines = [
+            self.run_single_solution(
+                agent_id=agent_id,
+                agent_file=agent_file,
+                task=task,
+                task_type=task_type,
+                project_context=project_context,
+            )
+            for agent_id, agent_file in self.agents
+        ]
+        solutions: list[AgentSolution] = await asyncio.gather(*coroutines)
+        success_count = sum(1 for s in solutions if s.status == "success")
+        failed_count = sum(1 for s in solutions if s.status == "failed")
+        print(f"[Runner] Round 1 complete: {success_count} success, {failed_count} failed")
+        return list(solutions)
+
+    def _parse_response(self, raw: str) -> dict:
+        """
+        Parse model JSON response. Falls back to raw-as-solution on parse failure.
+
+        Args:
+            raw: Raw response string from model
+
+        Returns:
+            Parsed dict with keys: solution, rationale, risks, improvements, artifacts
+        """
+        clean = re.sub(r"^```(?:json)?\n|```$", "", raw.strip(), flags=re.MULTILINE)
+        clean = clean.strip()
+        try:
+            return json.loads(clean)
+        except json.JSONDecodeError:
+            # Model answered but not JSON — treat full text as solution
             return {
-                "agent_id": agent_id,
-                "status": "success",
-                "directives": parsed.get("directives", []),
-                "constraints": parsed.get("constraints", []),
-                "red_flags": parsed.get("red_flags", []),
-                "raw": raw_response.strip(),
+                "solution": raw,
+                "rationale": "(non-JSON response from model)",
+                "risks": [],
+                "improvements": [],
+                "artifacts": "",
             }
 
-        except Exception as e:
-            print(f"[{agent_id}] Micro-Brief ERROR: {type(e).__name__}: {e}")
-            return {
-                "agent_id": agent_id,
-                "status": "error",
-                "directives": [],
-                "constraints": [],
-                "red_flags": [],
-                "error": str(e),
-                "raw": "",
-            }
+    # ---------------------------------------------------------------------------
+    # Backward-compatibility wrappers for --mode council / assembly / full
+    # ---------------------------------------------------------------------------
 
     async def run_micro_briefs(
         self,
         task: str,
         project_context: str = "",
         stage_context: str = "",
-    ) -> List[Dict[str, Any]]:
-        n_agents = len(self.agents)
-        print("================================")
-        print(f"ACTIVE-{n_agents}: ROUND 1 (COLLABORATIVE PROPOSALS)")
-        print("================================")
+    ) -> list[dict]:
+        """
+        DEPRECATED: Backward-compatible wrapper for v2.0 code paths.
 
-        tasks = [
-            self.run_agent_micro_brief(
-                agent_id,
-                agent_file,
-                task,
-                project_context,
-                stage_context,
-            )
-            for agent_id, agent_file in self.agents
+        Calls run_all_solutions() and converts AgentSolution list
+        to the old dict format {directives, constraints, red_flags}.
+
+        Args:
+            task: User task string
+            project_context: Optional context
+            stage_context: Ignored (v3.0 agents are omniscient)
+
+        Returns:
+            List of dicts in v2.0 format
+        """
+        solutions = await self.run_all_solutions(
+            task=task,
+            task_type="mixed",
+            project_context=project_context,
+        )
+        return [
+            {
+                "agent": s.agent_id,
+                "persona": s.persona,
+                "directives": s.solution[:500] if s.solution else "",
+                "constraints": ", ".join(s.risks[:3]) if s.risks else "",
+                "red_flags": ", ".join(s.improvements[:2]) if s.improvements else "",
+                "status": s.status,
+                "error": s.error,
+            }
+            for s in solutions
         ]
-
-        results = await asyncio.gather(*tasks)
-        print("================================")
-        print(f"ROUND 1 COMPLETED ({len(results)}/{n_agents} PROPOSALS)")
-        print("================================")
-        return results
