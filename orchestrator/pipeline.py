@@ -212,23 +212,41 @@ class UnifiedPipeline:
         project_context: str,
         safe_name: str,
     ) -> tuple[list, list, str]:
-        """Run the legacy 3-round council. Returns (briefs, debates, blueprint)."""
-        briefs = await self.runner.run_micro_briefs(task=task, project_context=project_context)
-
-        agent_prompts = {
-            agent_id: self.runner.load_agent_prompt(agent_file)
-            for agent_id, agent_file in self.runner.agents
-        }
-
-        debates = await self.council.matrix_debate(briefs=briefs, agent_prompts=agent_prompts)
-
-        blueprint = await self.council.synthesize_blueprint(
+        """Run the v3.0 3-round council. Returns (solutions, critiques, blueprint)."""
+        import os
+        from orchestrator.recovery import RecoveryManager
+        
+        # Round 1
+        solutions = await self.runner.run_all_solutions(task=task, task_type="planning", project_context=project_context)
+        
+        # Self-healing check
+        quorum = int(os.getenv("COUNCIL_QUORUM", "9"))
+        failed = [s for s in solutions if s.status == "failed"]
+        if len(failed) >= (len(solutions) - quorum + 1):  # 2+ failures triggers self-healing
+            recovery = RecoveryManager()
+            safe_name_str = safe_name if safe_name else 'default'
+            recovery.save_checkpoint(safe_name_str, solutions, task)
+            available = [s for s in solutions if s.status == "success"]
+            if available:  # Only substitute if we have available agents
+                substituted = await recovery.run_substitution(failed, available, task, "planning", self.router)
+                sol_map = {s.agent_id: s for s in solutions}
+                for sub in substituted:
+                    sol_map[sub.agent_id] = sub
+                solutions = list(sol_map.values())
+            recovery.cleanup_checkpoint(safe_name_str)
+            
+        # Round 2
+        critiques = await self.council.run_cross_critique(solutions)
+        
+        # Round 3
+        blueprint = await self.council.synthesize_merged_master(
             task=task,
-            briefs=briefs,
-            debates=debates,
+            solutions=solutions,
+            critiques=critiques,
+            task_type="planning",
             project_context=project_context,
         )
-        return briefs, debates, blueprint
+        return solutions, critiques, blueprint
 
     async def _run_legacy_council(
         self,
