@@ -1,6 +1,7 @@
 import asyncio
 import re
 import yaml
+from pathlib import Path
 from typing import List, Dict, Any
 
 try:
@@ -49,27 +50,31 @@ class Council:
         role_prompt: str,
         matrix_context: str,
     ) -> Dict[str, Any]:
-        system_prompt = f"""
-{role_prompt}
+        system_prompt = f"""{role_prompt}
 
-CRITICAL TOKEN CONSTRAINT:
-You are in ROUND 2: MATRIX DEBATE.
-Review the directives produced by ALL 5 agents.
-Do NOT write essays. Output strictly in this YAML format (maximum 150 words total):
+## Round 2: MATRIX DEBATE
+
+You are now in Round 2 of the engineering council. You have access to the full analysis from all 5 agents.
+
+Your mission: Review every agent's directives from your unique cognitive perspective. Endorse what is right, challenge what is wrong or incomplete, and propose unified decisions where there is conflict.
+
+Be specific and substantive in your critique. Generic endorsements ("Agent X made good points") add no value.
+Reference specific directives by name or number. Explain WHY you endorse or object.
+
+Respond in YAML format:
 
 endorse:
-  - "Strong decision from Agent X on Y"
+  - "Specific strong decision from [Agent X]: [what and why it's correct]"
 objection:
-  - "Critical challenge to Agent Z on W because of R"
+  - "Critical challenge to [Agent Z]: [specific directive] is wrong because [concrete technical reason]"
 consensus_vote:
-  - "Recommended unified decision on item V"
+  - "Unified decision: [specific, actionable resolution to any conflict]"
 """
 
-        user_prompt = f"""
-COUNCIL MATRIX:
+        user_prompt = f"""COUNCIL MATRIX — ALL AGENT DIRECTIVES:
 {matrix_context}
 
-Provide your matrix critique as {agent_id} in strict YAML format.
+Apply your Chain-of-Thought protocol, then provide your expert matrix critique as {agent_id}.
 """
 
         try:
@@ -85,7 +90,7 @@ Provide your matrix critique as {agent_id} in strict YAML format.
             except Exception:
                 parsed = {
                     "endorse": [],
-                    "objection": [raw_response.strip()[:200]],
+                    "objection": [raw_response.strip()],
                     "consensus_vote": [],
                 }
 
@@ -117,8 +122,9 @@ Provide your matrix critique as {agent_id} in strict YAML format.
         briefs: List[Dict[str, Any]],
         agent_prompts: Dict[str, str],
     ) -> List[Dict[str, Any]]:
+        n_agents = len(agent_prompts)
         print("================================")
-        print("ACTIVE-5: ROUND 2 (MATRIX DEBATE)")
+        print(f"ACTIVE-{n_agents}: ROUND 2 (MATRIX DEBATE)")
         print("================================")
 
         matrix_context = self.build_lean_matrix(briefs)
@@ -135,7 +141,7 @@ Provide your matrix critique as {agent_id} in strict YAML format.
 
         critiques = await asyncio.gather(*tasks)
         print("================================")
-        print("ROUND 2 COMPLETED (5/5 DEBATES)")
+        print(f"ROUND 2 COMPLETED ({len(critiques)}/{n_agents} DEBATES)")
         print("================================")
         return critiques
 
@@ -145,9 +151,11 @@ Provide your matrix critique as {agent_id} in strict YAML format.
         briefs: List[Dict[str, Any]],
         debates: List[Dict[str, Any]],
         project_context: str = "",
+        stage_focus: str = "",
     ) -> str:
+        n_debates = len(debates)
         print("================================")
-        print("ACTIVE-5: ROUND 3 (BLUEPRINT SYNTHESIS)")
+        print(f"ACTIVE-{n_debates}: ROUND 3 (BLUEPRINT SYNTHESIS)")
         print("================================")
 
         matrix = self.build_lean_matrix(briefs)
@@ -166,35 +174,45 @@ Provide your matrix critique as {agent_id} in strict YAML format.
 
         debates_summary = "\n".join(debate_lines)
 
-        system_prompt = """
-You are the Lead Master Architect synthesizing the final engineering consensus of an elite 5-agent council.
-Your goal is to produce a single, production-grade, authoritative Master Architecture Blueprint.
-Resolve all agent contradictions decisively based on best engineering practices.
-Do NOT leave unresolved questions or vague placeholders.
+        stage_instruction = ""
+        if stage_focus:
+            stage_instruction = f"\nSTAGE FOCUS: {stage_focus}\n"
 
-Format with clear Markdown:
+        system_prompt = f"""You are the Lead Master Architect synthesizing the final engineering consensus of an elite 10-agent council.
+
+Your mission: Produce a single, production-grade, authoritative Master Architecture Blueprint that represents the best collective intelligence of all 10 agents.
+{stage_instruction}
+**Quality Standards (Non-Negotiable):**
+- Zero vague placeholders. No "TBD", "TODO", or "implement later".
+- Resolve ALL agent contradictions decisively with clear technical reasoning.
+- Reference real-world patterns where applicable (Stripe API design, Vercel architecture, OWASP security, Prisma ORM conventions).
+- Every requirement must have a concrete acceptance criterion.
+- Every API endpoint must specify its 5-state response contract.
+- Every component must have its complete state specification.
+
+**Output Format (use clear Markdown sections):**
 # [Project Name] Master Architecture Blueprint
-## 1. System Overview & Tech Stack Selection
-## 2. API Contracts & Data Interface Schema
-## 3. UI/UX Hierarchy & Interaction Specification
-## 4. Security, Error Handling & Failure Modes
-## 5. Phased Assembly-Line Task Checklist
+## 1. System Overview & Tech Stack Decision
+## 2. Database Schema & Data Models
+## 3. API Contracts & 5-State Response Specifications
+## 4. UI/UX Component Hierarchy & Design System Tokens
+## 5. Security Architecture & Error Handling Strategy
+## 6. Phased Assembly-Line Task Checklist (ordered by dependency)
 """
 
-        user_prompt = f"""
-ORIGINAL TASK:
+        user_prompt = f"""ORIGINAL TASK:
 {task}
 
 PROJECT CONTEXT:
 {project_context or 'None provided'}
 
-ROUND 1 BRIEFS:
+ROUND 1 — AGENT BRIEFS:
 {matrix}
 
-ROUND 2 DEBATES:
+ROUND 2 — COUNCIL DEBATE:
 {debates_summary}
 
-Synthesize the final authoritative Master Blueprint now.
+Synthesize the final authoritative Master Blueprint now. Be comprehensive, specific, and production-grade.
 """
 
         blueprint = await self.router.request(

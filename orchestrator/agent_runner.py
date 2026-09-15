@@ -1,4 +1,5 @@
 import asyncio
+import random
 import re
 import yaml
 from pathlib import Path
@@ -24,6 +25,11 @@ class AgentRunner:
             ("agent_3", self.agents_dir / "agent3.md"),
             ("agent_4", self.agents_dir / "agent4.md"),
             ("agent_5", self.agents_dir / "agent5.md"),
+            ("agent_6", self.agents_dir / "agent6.md"),
+            ("agent_7", self.agents_dir / "agent7.md"),
+            ("agent_8", self.agents_dir / "agent8.md"),
+            ("agent_9", self.agents_dir / "agent9.md"),
+            ("agent_10", self.agents_dir / "agent10.md"),
         ]
 
     def load_agent_prompt(self, path: Path) -> str:
@@ -40,27 +46,37 @@ class AgentRunner:
         agent_file: Path,
         task: str,
         project_context: str = "",
+        stage_context: str = "",
     ) -> Dict[str, Any]:
         role_prompt = self.load_agent_prompt(agent_file)
 
-        system_prompt = f"""
-{role_prompt}
+        # Stage-specific context injection
+        stage_block = ""
+        if stage_context:
+            stage_block = f"\nSTAGE CONTEXT:\n{stage_context}\n"
 
-CRITICAL TOKEN CONSTRAINT:
-You are in ROUND 1: MICRO-BRIEFS.
-Analyze the task strictly from your assigned role.
-Do NOT write essays, introductory greetings, or verbose explanations.
-You MUST respond strictly in the following YAML format (maximum 150 words total):
+        system_prompt = f"""{role_prompt}
 
+## Round 1: MICRO-BRIEF DIRECTIVE
+
+You are contributing your expert analysis in Round 1 of a 3-round elite engineering council.
+
+Your mission: Analyze the task strictly from your assigned cognitive lens and deliver your most important directives, constraints, and risk flags.
+
+Be thorough and precise. Do NOT truncate your reasoning. If a point needs explanation, explain it fully.
+Be concise where brevity is appropriate, but never sacrifice depth for word count.
+
+Respond in the following YAML format:
+{stage_block}
 directives:
-  - "Core directive 1"
-  - "Core directive 2"
-  - "Core directive 3"
+  - "Concrete directive 1 — with specific technical reasoning"
+  - "Concrete directive 2"
+  - "Concrete directive 3 (add more if needed)"
 constraints:
-  - "Hard constraint 1"
+  - "Hard constraint 1 — why this constraint matters"
   - "Hard constraint 2"
 red_flags:
-  - "Critical risk 1"
+  - "Critical risk 1 — specific scenario and consequence"
   - "Critical risk 2"
 """
 
@@ -68,11 +84,10 @@ red_flags:
         if project_context:
             context_block = f"\nPROJECT CONTEXT & CONVENTIONS:\n{project_context}\n"
 
-        user_prompt = f"""
-TASK:
+        user_prompt = f"""TASK:
 {task}
 {context_block}
-Provide your micro-brief in strict YAML format.
+Apply your Chain-of-Thought protocol, then provide your expert micro-brief in YAML format.
 """
 
         try:
@@ -87,8 +102,9 @@ Provide your micro-brief in strict YAML format.
             try:
                 parsed = yaml.safe_load(clean_yaml) or {}
             except Exception:
+                # If YAML parsing fails, treat the raw response as a directive
                 parsed = {
-                    "directives": [raw_response.strip()[:200]],
+                    "directives": [raw_response.strip()],
                     "constraints": [],
                     "red_flags": [],
                 }
@@ -118,9 +134,11 @@ Provide your micro-brief in strict YAML format.
         self,
         task: str,
         project_context: str = "",
+        stage_context: str = "",
     ) -> List[Dict[str, Any]]:
+        n_agents = len(self.agents)
         print("================================")
-        print("ACTIVE-5: ROUND 1 (MICRO-BRIEFS)")
+        print(f"ACTIVE-{n_agents}: ROUND 1 (COLLABORATIVE PROPOSALS)")
         print("================================")
 
         tasks = [
@@ -129,12 +147,13 @@ Provide your micro-brief in strict YAML format.
                 agent_file,
                 task,
                 project_context,
+                stage_context,
             )
             for agent_id, agent_file in self.agents
         ]
 
         results = await asyncio.gather(*tasks)
         print("================================")
-        print("ROUND 1 COMPLETED (5/5 BRIEFS)")
+        print(f"ROUND 1 COMPLETED ({len(results)}/{n_agents} PROPOSALS)")
         print("================================")
         return results
